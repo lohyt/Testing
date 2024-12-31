@@ -1,2 +1,3 @@
 Get-Service | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Status
 Get-Service | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Status
+Get-ChildItem -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Publisher, Version
