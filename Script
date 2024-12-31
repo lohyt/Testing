@@ -1,0 +1,1 @@
+Get-Service | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Status
