@@ -1,0 +1,57 @@
+Vlookup
+
+e process:
+Step-by-Step Guide:
+Step 1: Prepare your Excel Sheets
+•	Sheet A: This sheet contains the list of IDs you want to check.
+o	Assume your ID column is labeled ID in Sheet A (let's say it's in column A).
+•	Sheet B: This sheet contains the IDs along with names.
+o	Assume your ID column in Sheet B is also labeled ID (let's say it's in column A).
+o	The name column is in column B.
+Step 2: Using VLOOKUP to Check ID Existence in Sheet B
+You need to check whether each ID in Sheet A exists in Sheet B. To do this, you can use VLOOKUP in Excel.
+1.	Go to Sheet A.
+2.	In an empty column (let's say column C), type the following formula to check if each ID from Sheet A exists in Sheet B:
+excel
+Copy code
+=IF(ISNA(VLOOKUP(A2, B!A:A, 1, FALSE)), "Not Found", "Found")
+Explanation:
+o	A2: The cell in Sheet A that contains the ID you want to check.
+o	B!A:A: The range to search in Sheet B (column A in Sheet B where IDs are located).
+o	1: This refers to the column number in the range to return the value (column 1 in this case, as it’s the ID column in Sheet B).
+o	FALSE: This ensures that you are looking for an exact match.
+o	The IF(ISNA(...)) will return "Not Found" if the ID doesn't exist in Sheet B and "Found" if it does.
+3.	Drag this formula down to apply it to all rows in column C for all IDs in Sheet A.
+Step 3: Check the Name for "test"
+Next, you want to verify if the corresponding name column in Sheet B is equal to "test", for those IDs that are found.
+1.	In another empty column (let's say column D), enter this formula to check if the name corresponding to each found ID is "test":
+excel
+Copy code
+=IF(C2="Found", IF(VLOOKUP(A2, B!A:B, 2, FALSE)="test", "Test Found", "Test Not Found"), "ID Not Found")
+Explanation:
+o	C2="Found": Checks if the ID in Sheet A was found in Sheet B (from the previous column).
+o	VLOOKUP(A2, B!A:B, 2, FALSE): Looks up the ID in column A of Sheet B and returns the corresponding name from column B.
+o	"test": Checks if the name is equal to "test".
+o	The formula returns:
+	"Test Found" if the name is "test."
+	"Test Not Found" if the name isn't "test."
+	"ID Not Found" if the ID from Sheet A isn't found in Sheet B.
+2.	Drag this formula down to apply it to all rows in column D.
+Step 4: Review Results
+•	Column C will indicate whether the ID from Sheet A was found in Sheet B.
+•	Column D will show whether the corresponding name is "test" or not.
+Step 5: Additional Actions (Optional)
+If you want to filter or take action based on the results, you can:
+•	Filter the values in column D to only show "Test Found", "Test Not Found", or "ID Not Found".
+•	Use conditional formatting to highlight the rows where the name is "test" or where the ID is not found.
+Example:
+Sheet A (ID)	Found in B (Column C)	Test Check (Column D)
+101	Found	Test Found
+102	Found	Test Not Found
+103	Not Found	ID Not Found
+Summary:
+1.	Use VLOOKUP to check if each ID in Sheet A exists in Sheet B.
+2.	Then, use another VLOOKUP to check the corresponding name if the ID is found.
+3.	Combine the results to show whether the ID is found and whether the name is "test."
+Let me know if you need any further assistance!
+
