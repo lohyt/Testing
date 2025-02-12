@@ -1,0 +1,68 @@
+**Risk Report: Windows Login Account Lockout Policy and Security Monitoring Deficiencies**
+
+---
+
+### **1. Executive Summary**
+
+This report outlines two critical security risks identified within the organization's Active Directory (AD) Single Sign-On (SSO) authentication process. The absence of an account lockout policy for Windows logins and the inadequate configuration of local security policies for event logging present vulnerabilities that could expose the organization to potential brute-force attacks, unauthorized access, and inadequate monitoring. 
+
+These risks must be addressed promptly to improve the security posture of the organization's IT infrastructure.
+
+---
+
+### **2. Risk 1: Absence of Account Lockout Policy for Windows Logins (AD SSO)**
+
+#### **Risk Description:**
+Currently, the organization’s Windows login system (integrated with Active Directory Single Sign-On) does not implement an account lockout policy. This means that there is no mechanism in place to lock user accounts after a predefined number of failed login attempts. As a result, attackers can repeatedly attempt password guesses without facing any deterrent.
+
+#### **Potential Impact:**
+- **Brute-force Attacks**: Without an account lockout policy, attackers can perform unlimited brute-force attempts to guess user credentials. This increases the likelihood of successful unauthorized access.
+- **Credential Theft and Data Breaches**: An attacker could gain access to sensitive internal systems by guessing or cracking weak user passwords, potentially leading to credential theft, unauthorized access, and a data breach.
+- **Non-compliance**: Many regulatory frameworks (e.g., GDPR, HIPAA, PCI DSS) require controls to prevent unauthorized access to systems. The lack of an account lockout policy may result in non-compliance with these standards, exposing the organization to regulatory fines and reputational damage.
+
+#### **Recommendation:**
+Implement an account lockout policy with the following settings:
+- **Lockout Threshold**: Lock user accounts after a specified number of failed login attempts (e.g., 5 attempts).
+- **Lockout Duration**: Define a period after which the account can be automatically unlocked (e.g., 15 minutes).
+- **Reset Counter**: Set a counter reset time (e.g., after 30 minutes of no failed login attempts).
+By implementing these controls, the organization can significantly mitigate the risk of brute-force attacks and ensure that failed login attempts are properly addressed.
+
+---
+
+### **3. Risk 2: Insufficient Logging of Successful Login Events**
+
+#### **Risk Description:**
+The local security policy currently logs only failed login attempts and does not record successful logins. While the SIEM (Security Information and Event Management) team has rules in place for alerting on failed login events, there is no logging for successful logins, which limits the ability to monitor and detect unauthorized access effectively.
+
+#### **Potential Impact:**
+- **Lack of Visibility**: Without logging successful login attempts, there is no comprehensive audit trail to track and verify legitimate access. If an attacker successfully gains access, it may be difficult to detect or trace the breach.
+- **Delayed Incident Detection**: In the event of unauthorized access or a breach, the absence of a log for successful logins hinders early detection, making it more challenging to respond and mitigate potential damage.
+- **Limited Forensic Investigation**: Without detailed logs of both successful and failed login attempts, forensic investigations are limited. The organization would be unable to correlate failed login attempts with eventual successful access, making it harder to investigate suspicious activity.
+
+#### **Recommendation:**
+Configure the local security policy to log all successful login attempts, including:
+- **Time of Login**: Timestamp for each successful login attempt.
+- **User ID**: The username of the account used for login.
+- **Source IP**: The IP address from which the login occurred.
+- **Terminal/Device Used**: Information about the device or terminal used for the login attempt.
+Additionally, ensure that logs are forwarded to the SIEM system for real-time monitoring and alerting, allowing the security team to track and respond to unauthorized access more effectively.
+
+---
+
+### **4. Conclusion**
+
+Both the absence of an account lockout policy and insufficient logging of successful logins present significant security risks. These issues expose the organization to unauthorized access, brute-force attacks, and delayed detection of potential security incidents. Implementing the recommended security controls will reduce the risk of unauthorized access, improve incident detection capabilities, and ensure compliance with regulatory requirements.
+
+**Next Steps:**
+1. Implement an account lockout policy to mitigate brute-force attack risks.
+2. Modify the local security policy to log both failed and successful login attempts, ensuring comprehensive security monitoring and auditing.
+
+Addressing these issues should be prioritized to safeguard the organization's IT infrastructure and sensitive data.
+
+---
+
+**Report Prepared By:**  
+[Your Name]  
+[Your Title]  
+[Department/Team Name]  
+[Date]
