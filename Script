@@ -1,3 +1,7 @@
+=IFERROR(VALUE(MID(A2,FIND("hr",A2)-1,1))*3600, 0) + IFERROR(VALUE(MID(A2,FIND("min",A2)-2,2))*60, 0) + IFERROR(VALUE(MID(A2,FIND("sec",A2)-2,2)), 0)
+
+
+
 Get-CimInstance -Namespace root/SecurityCenter2 -ClassName AntivirusProduct
 Get-WmiObject -Namespace root\SecurityCenter2 -Class AntivirusProduct
 Get-MpComputerStatus
