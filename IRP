@@ -97,3 +97,14 @@ This procedure applies to all IT systems, employees, and third parties involved 
 7. Review and Maintenance
 -------------------------
 This procedure must be reviewed annually or after significant incidents to ensure it reflects current best practices, legal standards, and organizational needs.
+
+
+3. Roles and Responsibilities
+-----------------------------
+| Role                   | Responsibilities                                                           |
+|------------------------|-----------------------------------------------------------------------------|
+| CISO                   | Provide strategic oversight, approve escalation, liaise with executive and legal teams |
+| Incident Response Lead | Coordinate forensic tasks, maintain chain of custody, report findings       |
+| IT Security Analyst    | Perform forensic collection, analysis, and documentation                    |
+| Legal/Compliance       | Advise on legal implications, evidence handling, and retention requirements |
+| System Owner           | Provide access, context, and support during investigation                   |
