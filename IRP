@@ -1,1 +1,99 @@
 
+Incident Response Procedure – Forensic Analysis Focus  
+------------------------------------------------------
+
+Document Owner     : [Your Organization Name]  
+Version            : 1.1  
+Approval Date      : [DD-MM-YYYY]  
+Review Cycle       : Annually  
+Confidentiality    : Internal Use Only  
+
+1. Purpose
+----------
+To establish a standardized procedure for conducting forensic analysis during cybersecurity incidents, in alignment with ISO/IEC 27001 Annex A.16 (Information Security Incident Management) and NIST SP 800-61, ensuring evidence integrity, legal admissibility, and root cause identification.
+
+2. Scope
+--------
+This procedure applies to all IT systems, employees, and third parties involved in a security incident requiring forensic investigation.
+
+3. Roles and Responsibilities
+-----------------------------
+| Role                   | Responsibilities                                                           |
+|------------------------|-----------------------------------------------------------------------------|
+| Incident Response Lead | Coordinate forensic tasks, maintain chain of custody, report findings       |
+| IT Security Analyst    | Perform forensic collection, analysis, and documentation                    |
+| Legal/Compliance       | Advise on legal implications, evidence handling, and retention requirements |
+| System Owner           | Provide access, context, and support during investigation                   |
+
+4. Forensic Analysis Procedure
+------------------------------
+
+4.1 Preparation
+- Ensure forensic tools and personnel are in place and trained.
+- Maintain a current asset inventory and data flow diagrams.
+- Define criteria for when forensic investigations are initiated.
+
+4.2 Identification
+- Confirm incident through logs, alerts, or user reports.
+- Document the nature, scope, and indicators of compromise (IOCs).
+- Notify appropriate stakeholders.
+
+4.3 Containment
+- Short-Term: Isolate affected systems to prevent spread while preserving volatile data.
+- Long-Term: Implement network segmentation and monitoring to support ongoing analysis.
+
+4.4 Evidence Collection
+- Use industry-standard tools to acquire:
+  - Memory dumps, disk images, network traffic, system and application logs.
+- Label and hash each artifact (e.g., MD5/SHA256) to ensure integrity.
+- Secure all evidence in tamper-proof, access-controlled storage.
+
+4.5 Chain of Custody
+- Assign a unique evidence ID to each collected item.
+- Document the who, what, when, where, why, and how of evidence handling:
+  - Who collected or accessed the evidence
+  - What the evidence is (description)
+  - When it was handled (date/time)
+  - Where it was stored/transferred
+  - Why it was accessed
+  - How it was collected and protected
+- Ensure each handoff is signed and time-stamped by both parties.
+- Store completed chain of custody records securely, with restricted access.
+
+4.6 Analysis
+- Reconstruct attack timeline using collected evidence.
+- Identify root cause, entry point, malware, lateral movement, and data exfiltration.
+- Use threat intelligence to correlate findings with known threat actors or campaigns.
+- Ensure all actions taken are logged, reproducible, and defensible.
+
+4.7 Reporting
+- Prepare a formal forensic investigation report, including:
+  - Incident summary
+  - Evidence collected and analysis steps
+  - Indicators of compromise (IOCs)
+  - Root cause and affected assets
+  - Mitigation and recovery actions
+- Retain both the forensic report and chain of custody logs in secure storage.
+- Provide a redacted or summarized version to management and external parties, if required.
+
+4.8 Post-Incident Activities
+- Retain evidence and reports per regulatory and legal requirements.
+- Conduct a lessons-learned session with involved stakeholders.
+- Update detection, prevention, and response controls based on findings.
+- Revise policies and procedures as necessary.
+
+5. Tools and Resources
+----------------------
+- Forensic Tools: FTK Imager, EnCase, Volatility, Autopsy, Wireshark, Log2Timeline
+- Log Sources: SIEM (e.g., Splunk, ELK), system logs, firewall and proxy logs
+- Chain of Custody Forms: Maintained in incident management platform or secure document store
+
+6. References
+-------------
+- ISO/IEC 27001:2022 – Annex A.16 (Information Security Incident Management)  
+- NIST SP 800-61 Rev. 2 – Computer Security Incident Handling Guide  
+- NIST SP 800-86 – Guide to Integrating Forensic Techniques into Incident Response
+
+7. Review and Maintenance
+-------------------------
+This procedure must be reviewed annually or after significant incidents to ensure it reflects current best practices, legal standards, and organizational needs.
