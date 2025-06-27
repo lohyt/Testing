@@ -1,0 +1,57 @@
+@echo off
+setlocal enabledelayedexpansion
+
+:: Get Hostname
+set HOSTNAME=%COMPUTERNAME%
+
+:: Get IP Address (IPv4)
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /i "IPv4"') do (
+    for /f "tokens=* delims= " %%b in ("%%a") do set IP=%%b
+)
+
+:: Remove dots from IP for filename compatibility
+set FILE_NAME=%IP%_%HOSTNAME%.txt
+set FILE_NAME=%FILE_NAME:.=_%
+
+:: Set output file in current directory
+set OUTPUT=%CD%\%FILE_NAME%
+
+:: Write Header
+echo === SERVER SECURITY CHECK REPORT === > "%OUTPUT%"
+echo Generated on: %DATE% %TIME% >> "%OUTPUT%"
+echo Hostname: %HOSTNAME% >> "%OUTPUT%"
+echo IP Address: %IP% >> "%OUTPUT%"
+echo ---------------------------------------- >> "%OUTPUT%"
+echo. >> "%OUTPUT%"
+
+:: Last Windows Update Date (using PowerShell)
+echo == Last Windows Update Date == >> "%OUTPUT%"
+powershell -Command "Get-HotFix | Sort-Object InstalledOn -Descending | Select -First 1 | Format-List" >> "%OUTPUT%"
+echo. >> "%OUTPUT%"
+
+:: Drive Sharing Details
+echo == Drive Sharing Details == >> "%OUTPUT%"
+net share >> "%OUTPUT%"
+echo. >> "%OUTPUT%"
+
+:: Logging Details (System log - last 20 entries)
+echo == Logging Details (Last 20 System Events) == >> "%OUTPUT%"
+powershell -Command "Get-EventLog -LogName System -Newest 20 | Format-Table -AutoSize" >> "%OUTPUT%"
+echo. >> "%OUTPUT%"
+
+:: Antivirus Details (via PowerShell WMI)
+echo == Antivirus Details == >> "%OUTPUT%"
+powershell -Command "try { Get-CimInstance -Namespace root\SecurityCenter2 -ClassName AntiVirusProduct | Select-Object displayName, productState, timestamp | Format-Table -AutoSize } catch { 'Unable to retrieve antivirus details' }" >> "%OUTPUT%"
+echo. >> "%OUTPUT%"
+
+:: Running Services with .exe and .dll paths
+echo == Services with .exe/.dll in path == >> "%OUTPUT%"
+powershell -Command "Get-WmiObject Win32_Service | Where-Object { $_.PathName -match '\.exe|\.dll' } | Select-Object Name, DisplayName, State, PathName | Format-Table -AutoSize" >> "%OUTPUT%"
+echo. >> "%OUTPUT%"
+
+:: Final Message
+echo.
+echo Report saved to: %OUTPUT%
+echo.
+pause
+exit /b
