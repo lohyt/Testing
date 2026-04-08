@@ -1,0 +1,76 @@
+# =============================
+# PowerShell Compliance Script
+# Windows Server 2022
+# =============================
+
+# Get Hostname and IP
+$hostname = $env:COMPUTERNAME
+$ipAddress = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike "127.*"} | Select-Object -First 1).IPAddress
+$logFile = "$ipAddress" + "_" + "$hostname.txt"
+
+# Initialize log content array
+$logContent = @()
+
+# -----------------------------
+# 1. Check if Symantec is installed
+# -----------------------------
+$symantecPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
+$symantecInstalled = Get-ItemProperty $symantecPath | Where-Object { $_.DisplayName -like "*Symantec*" }
+
+if ($symantecInstalled) {
+    $logContent += "Symantec Installation: COMPLIANT - Symantec is installed."
+} else {
+    $logContent += "Symantec Installation: NON-COMPLIANT - Symantec is NOT installed."
+}
+
+# -----------------------------
+# 2. Check last update date
+# -----------------------------
+if ($symantecInstalled) {
+    # Attempt to get last update from registry or WMI
+    $lastUpdate = Get-ItemProperty "HKLM:\SOFTWARE\Symantec\Symantec Endpoint Protection\SMC" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "LastUpdateTime" -ErrorAction SilentlyContinue
+    if (!$lastUpdate) {
+        # fallback to WMI if registry not available
+        $lastUpdate = (Get-WmiObject -Namespace "root\SecurityCenter2" -Class AntiVirusProduct | Where-Object {$_.displayName -like "*Symantec*"}).productState
+        # if unavailable, mark as unknown
+        if (!$lastUpdate) { $lastUpdate = "Unknown" }
+    }
+
+    # Check date
+    if ($lastUpdate -ne "Unknown") {
+        $lastUpdateDate = [datetime]::ParseExact($lastUpdate, "yyyyMMddHHmmss", $null)
+        $timeDiff = (Get-Date) - $lastUpdateDate
+        if ($timeDiff.TotalDays -le 365) {
+            $logContent += "Symantec Last Update: COMPLIANT - Last update was within a year ($lastUpdateDate)."
+        } else {
+            $logContent += "Symantec Last Update: NON-COMPLIANT - Last update was more than a year ago ($lastUpdateDate)."
+        }
+    } else {
+        $logContent += "Symantec Last Update: NON-COMPLIANT - Could not determine last update date."
+    }
+} else {
+    $logContent += "Symantec Last Update: NON-COMPLIANT - Symantec not installed."
+}
+
+# -----------------------------
+# 3. Check drive sharing status
+# -----------------------------
+$shares = Get-SmbShare | Where-Object { $_.Name -ne "IPC$" }
+if ($shares.Count -eq 0) {
+    $logContent += "Drive Sharing: COMPLIANT - Only IPC$ share exists."
+} else {
+    $shareList = $shares.Name -join ", "
+    $logContent += "Drive Sharing: NON-COMPLIANT - Other shares exist: $shareList"
+}
+
+# -----------------------------
+# 4. Logging details
+# -----------------------------
+$logContent += "`nLogging completed on: $(Get-Date)"
+$logContent | Out-File -FilePath $logFile -Encoding UTF8
+
+# -----------------------------
+# Wait for user to close
+# -----------------------------
+Add-Type -AssemblyName System.Windows.Forms
+[System.Windows.Forms.MessageBox]::Show("Compliance check completed. Log saved as $logFile", "Done", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
