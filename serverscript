@@ -1,76 +1,81 @@
-# =============================
-# PowerShell Compliance Script
-# Windows Server 2022
-# =============================
+@echo off
+setlocal enabledelayedexpansion
 
-# Get Hostname and IP
-$hostname = $env:COMPUTERNAME
-$ipAddress = (Get-NetIPAddress -AddressFamily IPv4 | Where-Object {$_.IPAddress -notlike "127.*"} | Select-Object -First 1).IPAddress
-$logFile = "$ipAddress" + "_" + "$hostname.txt"
+REM -----------------------------
+REM Get Hostname and IP
+REM -----------------------------
+set hostname=%COMPUTERNAME%
+for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /R /C:"IPv4 Address"') do (
+    set ip=%%A
+    set ip=!ip: =!
+    goto :IPFound
+)
+:IPFound
+set logfile=%ip%_%hostname%.txt
 
-# Initialize log content array
-$logContent = @()
+REM -----------------------------
+REM 1. Check if Symantec is installed
+REM -----------------------------
+set symantecInstalled=0
+reg query "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall" /s /f "Symantec" >nul 2>&1
+if %errorlevel%==0 (
+    echo Symantec Installation: COMPLIANT - Symantec is installed. >> %logfile%
+    set symantecInstalled=1
+) else (
+    echo Symantec Installation: NON-COMPLIANT - Symantec is NOT installed. >> %logfile%
+)
 
-# -----------------------------
-# 1. Check if Symantec is installed
-# -----------------------------
-$symantecPath = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\*"
-$symantecInstalled = Get-ItemProperty $symantecPath | Where-Object { $_.DisplayName -like "*Symantec*" }
+REM -----------------------------
+REM 2. Check last update date
+REM -----------------------------
+if %symantecInstalled%==1 (
+    REM Try reading from SMC registry key
+    reg query "HKLM\SOFTWARE\Symantec\Symantec Endpoint Protection\SMC" /v LastUpdateTime > temp.txt 2>nul
+    for /f "tokens=3" %%A in ('findstr LastUpdateTime temp.txt') do set lastUpdate=%%A
+    del temp.txt
+    if defined lastUpdate (
+        REM Convert YYYYMMDDHHMMSS to date
+        set yyyy=!lastUpdate:~0,4!
+        set mm=!lastUpdate:~4,2!
+        set dd=!lastUpdate:~6,2!
+        set lastUpdateDate=!yyyy!-!mm!-!dd!
+        for /f "tokens=1-3 delims=-" %%i in ("!lastUpdateDate!") do set /a yy=%%i, mm=%%j, dd=%%k
+        powershell -Command "$d1=Get-Date; $d2=Get-Date '%lastUpdateDate%'; if (($d1-$d2).Days -le 365) {exit 0} else {exit 1}"
+        if %errorlevel%==0 (
+            echo Symantec Last Update: COMPLIANT - Last update was within a year (!lastUpdateDate!). >> %logfile%
+        ) else (
+            echo Symantec Last Update: NON-COMPLIANT - Last update was more than a year ago (!lastUpdateDate!). >> %logfile%
+        )
+    ) else (
+        echo Symantec Last Update: NON-COMPLIANT - Could not determine last update date. >> %logfile%
+    )
+) else (
+    echo Symantec Last Update: NON-COMPLIANT - Symantec not installed. >> %logfile%
+)
 
-if ($symantecInstalled) {
-    $logContent += "Symantec Installation: COMPLIANT - Symantec is installed."
-} else {
-    $logContent += "Symantec Installation: NON-COMPLIANT - Symantec is NOT installed."
-}
+REM -----------------------------
+REM 3. Check drive sharing status
+REM -----------------------------
+set nonCompliantShares=
+for /f "skip=4 tokens=1" %%S in ('net share') do (
+    if /I not "%%S"=="IPC$" (
+        set nonCompliantShares=!nonCompliantShares! %%S
+    )
+)
+if "!nonCompliantShares!"=="" (
+    echo Drive Sharing: COMPLIANT - Only IPC$ share exists. >> %logfile%
+) else (
+    echo Drive Sharing: NON-COMPLIANT - Other shares exist:!nonCompliantShares! >> %logfile%
+)
 
-# -----------------------------
-# 2. Check last update date
-# -----------------------------
-if ($symantecInstalled) {
-    # Attempt to get last update from registry or WMI
-    $lastUpdate = Get-ItemProperty "HKLM:\SOFTWARE\Symantec\Symantec Endpoint Protection\SMC" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty "LastUpdateTime" -ErrorAction SilentlyContinue
-    if (!$lastUpdate) {
-        # fallback to WMI if registry not available
-        $lastUpdate = (Get-WmiObject -Namespace "root\SecurityCenter2" -Class AntiVirusProduct | Where-Object {$_.displayName -like "*Symantec*"}).productState
-        # if unavailable, mark as unknown
-        if (!$lastUpdate) { $lastUpdate = "Unknown" }
-    }
+REM -----------------------------
+REM 4. Logging details
+REM -----------------------------
+echo. >> %logfile%
+echo Logging completed on: %DATE% %TIME% >> %logfile%
 
-    # Check date
-    if ($lastUpdate -ne "Unknown") {
-        $lastUpdateDate = [datetime]::ParseExact($lastUpdate, "yyyyMMddHHmmss", $null)
-        $timeDiff = (Get-Date) - $lastUpdateDate
-        if ($timeDiff.TotalDays -le 365) {
-            $logContent += "Symantec Last Update: COMPLIANT - Last update was within a year ($lastUpdateDate)."
-        } else {
-            $logContent += "Symantec Last Update: NON-COMPLIANT - Last update was more than a year ago ($lastUpdateDate)."
-        }
-    } else {
-        $logContent += "Symantec Last Update: NON-COMPLIANT - Could not determine last update date."
-    }
-} else {
-    $logContent += "Symantec Last Update: NON-COMPLIANT - Symantec not installed."
-}
-
-# -----------------------------
-# 3. Check drive sharing status
-# -----------------------------
-$shares = Get-SmbShare | Where-Object { $_.Name -ne "IPC$" }
-if ($shares.Count -eq 0) {
-    $logContent += "Drive Sharing: COMPLIANT - Only IPC$ share exists."
-} else {
-    $shareList = $shares.Name -join ", "
-    $logContent += "Drive Sharing: NON-COMPLIANT - Other shares exist: $shareList"
-}
-
-# -----------------------------
-# 4. Logging details
-# -----------------------------
-$logContent += "`nLogging completed on: $(Get-Date)"
-$logContent | Out-File -FilePath $logFile -Encoding UTF8
-
-# -----------------------------
-# Wait for user to close
-# -----------------------------
-Add-Type -AssemblyName System.Windows.Forms
-[System.Windows.Forms.MessageBox]::Show("Compliance check completed. Log saved as $logFile", "Done", [System.Windows.Forms.MessageBoxButtons]::OK, [System.Windows.Forms.MessageBoxIcon]::Information)
+REM -----------------------------
+REM Wait for user to close
+REM -----------------------------
+msg * "Compliance check completed. Log saved as %logfile%. Press OK to close."
+pause >nul
