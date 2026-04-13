@@ -1,0 +1,71 @@
+@echo off
+setlocal enabledelayedexpansion
+
+:: Create output directory if not exists
+if not exist C:\Temp mkdir C:\Temp
+
+:: Get IP
+for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%A
+)
+set IP=%IP: =%
+
+:: File
+set FILE=C:\Temp\Audit_Report_%IP%.txt
+
+(
+echo ==========================================
+echo        WINDOWS SERVER AUDIT REPORT
+echo ==========================================
+echo IP Address: %IP%
+echo Hostname: %COMPUTERNAME%
+echo Date: %DATE% %TIME%
+echo ------------------------------------------
+
+:: 1. Antivirus Status
+echo [1] Antivirus Status (ccsvchst.exe)
+tasklist | findstr /i "ccsvchst.exe" >nul
+if %errorlevel%==0 (
+    echo Status: RUNNING
+) else (
+    echo Status: NOT RUNNING
+)
+
+echo ------------------------------------------
+
+:: 2. Recent Security Updates
+echo [2] Recent Installed Updates
+wmic qfe get HotFixID,InstalledOn | findstr /r /v "^$"
+
+echo ------------------------------------------
+
+:: 3. Drive Sharing Status
+echo [3] Drive Shares
+net share | findstr /v "IPC$" | findstr /v "ADMIN$"
+
+echo ------------------------------------------
+
+:: 4. Audit Policy Status
+echo [4] Audit Policy (Filtered)
+
+echo --- Account Logon ---
+auditpol /get /category:"Account Logon"
+
+echo --- Logon/Logoff ---
+auditpol /get /category:"Logon/Logoff"
+
+echo --- Account Management ---
+auditpol /get /category:"Account Management"
+
+echo --- Policy Change ---
+auditpol /get /category:"Policy Change"
+
+echo ==========================================
+
+) > %FILE%
+
+:: Print to console
+type %FILE%
+
+echo.
+echo Report saved at: %FILE%
