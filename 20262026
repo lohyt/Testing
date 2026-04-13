@@ -1,0 +1,67 @@
+@echo off
+setlocal enabledelayedexpansion
+
+:: Get first IPv4 (clean)
+for /f "tokens=2 delims=:" %%A in ('ipconfig ^| findstr /i "IPv4"') do (
+    set IP=%%A
+    goto :ipdone
+)
+:ipdone
+set IP=!IP: =!
+
+if "!IP!"=="" set IP=UNKNOWN
+
+:: File path (C drive root)
+set FILE=C:\Audit_Report_!IP!.txt
+
+:: Start writing
+echo ========================================== > "!FILE!"
+echo WINDOWS SERVER AUDIT REPORT >> "!FILE!"
+echo ========================================== >> "!FILE!"
+echo IP Address: !IP! >> "!FILE!"
+echo Hostname: %COMPUTERNAME% >> "!FILE!"
+echo Date: %DATE% %TIME% >> "!FILE!"
+echo ------------------------------------------ >> "!FILE!"
+
+:: 1. Antivirus
+echo [1] Antivirus Status (ccsvchst.exe) >> "!FILE!"
+tasklist | findstr /i "ccsvchst.exe" >nul
+if !errorlevel!==0 (
+    echo Status: RUNNING >> "!FILE!"
+) else (
+    echo Status: NOT RUNNING >> "!FILE!"
+)
+echo ------------------------------------------ >> "!FILE!"
+
+:: 2. Updates
+echo [2] Recent Installed Updates >> "!FILE!"
+wmic qfe get HotFixID,InstalledOn | findstr /r /v "^$" >> "!FILE!"
+echo ------------------------------------------ >> "!FILE!"
+
+:: 3. Shares
+echo [3] Drive Shares >> "!FILE!"
+net share | findstr /v "IPC$" | findstr /v "ADMIN$" >> "!FILE!"
+echo ------------------------------------------ >> "!FILE!"
+
+:: 4. Audit Policy
+echo [4] Audit Policy >> "!FILE!"
+
+echo --- Account Logon --- >> "!FILE!"
+auditpol /get /category:"Account Logon" >> "!FILE!"
+
+echo --- Logon/Logoff --- >> "!FILE!"
+auditpol /get /category:"Logon/Logoff" >> "!FILE!"
+
+echo --- Account Management --- >> "!FILE!"
+auditpol /get /category:"Account Management" >> "!FILE!"
+
+echo --- Policy Change --- >> "!FILE!"
+auditpol /get /category:"Policy Change" >> "!FILE!"
+
+echo ========================================== >> "!FILE!"
+
+:: Show output
+type "!FILE!"
+
+echo.
+echo Report saved at: !FILE!
