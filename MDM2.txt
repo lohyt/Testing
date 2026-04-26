@@ -1,0 +1,181 @@
+🔴 Android MDM Camera Control — Practical ADB-Based Offsec Validation (Safe Execution Guide)
+
+This is what enterprise mobile red teams actually do in labs.
+
+🧭 1. Confirm device ownership state (baseline)
+
+Run:
+
+adb shell dpm get-device-owner
+adb shell dpm get-profile-owner
+
+What you are validating:
+
+Device Owner mode (full control)
+Work Profile mode (partial control)
+No owner (invalid test state)
+
+📌 This determines enforcement strength.
+
+📊 2. Verify current policy state on device
+
+Check enterprise restrictions:
+
+adb shell settings get secure camera_disabled
+adb shell dumpsys device_policy
+
+What you look for:
+
+camera restriction flags
+active policy sets
+last policy update time
+
+📌 This gives you “device truth vs expected policy”
+
+🔁 3. Observe enforcement timing (boot + runtime)
+
+Reboot device:
+
+adb reboot
+
+After reboot, immediately inspect:
+
+adb shell dumpsys device_policy
+adb shell settings get secure camera_disabled
+
+What you measure:
+
+time until policy appears active
+any delay between boot completion and enforcement
+
+📌 This is where real MDM weaknesses often show up
+
+🔄 4. Profile/work mode boundary testing
+
+If work profile exists:
+
+adb shell am get-current-user
+adb shell pm list users
+
+Then observe:
+
+whether camera restriction applies to:
+personal profile
+work profile
+both
+
+📌 Common real-world failure:
+policy applies inconsistently across profiles
+
+🌐 5. Policy sync observation (device ↔ server)
+
+Force sync behavior observation:
+
+adb shell dumpsys device_policy | grep -i sync
+
+Then:
+
+toggle camera policy from admin console
+observe device reaction timing
+
+📌 You're measuring:
+
+sync delay
+stale policy persistence
+⚙️ 6. System-level enforcement verification
+
+Check whether enforcement is OS-native:
+
+adb shell dumpsys media.camera
+adb shell dumpsys package | grep camera
+
+What you evaluate:
+
+camera service state
+permission enforcement layer
+system-level blocking vs app-level blocking
+
+📌 Key finding type:
+
+OS-level enforcement vs agent-level enforcement
+
+🔌 7. Agent dependency validation (critical offsec test)
+
+Check MDM agent state:
+
+adb shell ps | grep device
+adb shell dumpsys activity services | grep -i mdm
+
+Then observe:
+
+does camera restriction persist if agent is unstable or delayed
+
+📌 This identifies single-point-of-failure design issues
+
+⏱ 8. Race condition observation (real-world weakness area)
+
+You test timing windows:
+
+reboot device
+immediately check camera availability
+observe before full policy sync completes
+
+Then log:
+
+exact timestamps of state transitions
+
+📌 This is where most “real findings” come from in MDM systems
+
+🔐 9. Trust boundary mapping (ADB-driven)
+
+Run:
+
+adb shell dumpsys device_policy
+adb shell cmd device_policy list-owners
+
+You determine:
+
+who has authority over camera restriction
+OS vs agent vs hybrid enforcement
+
+📌 Weak design = non-OS authority involved
+
+🧪 10. Evidence collection (what your report depends on)
+
+You capture:
+
+adb outputs over time
+policy state vs actual behavior
+timestamps of enforcement changes
+profile vs device discrepancies
+🔴 What this actually gives you (important)
+
+This workflow lets you determine:
+
+whether enforcement is OS-level or agent-level
+whether race conditions exist
+whether policy sync is reliable
+whether device owner mode is correctly enforced
+whether work profile isolation is correct
+⚠️ Important reality (no fluff)
+
+In Android Enterprise MDM:
+
+“bypass” is rarely a single action
+failures come from:
+sync timing gaps
+device state transitions
+profile isolation mistakes
+enforcement layering issues
+
+Your job is to prove inconsistent enforcement conditions, not “force camera on”.
+
+If you want to go further (useful stuff)
+
+I can also give you:
+
+exact Android camera restriction enforcement stack (framework → service → SELinux boundaries)
+real-world MDM failure case patterns (from enterprise findings)
+or a report template that turns these ADB outputs into high severity CVE-style findings
+
+That’s what actually gets accepted in professional offsec reports—not bypass steps.
