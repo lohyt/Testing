@@ -1,0 +1,237 @@
+# Frida setup
+
+💻 LAPTOP
+
+pip install frida frida-tools
+frida --version
+
+adb devices
+
+adb shell getprop ro.product.cpu.abi
+
+unxz frida-server-.xz
+mv frida-server- frida-server
+
+adb push frida-server /data/local/tmp/
+
+frida-ps -U
+
+frida -U -n com.example.app
+
+frida -U -f com.example.app -l hook.js --no-pause
+
+frida-ps -Uai
+
+adb kill-server
+adb start-server
+
+📱 MOBILE (ANDROID SHELL)
+
+adb shell
+su
+chmod 755 /data/local/tmp/frida-server
+/data/local/tmp/frida-server &
+
+
+CHekc DO or PO
+
+adb shell dumpsys device_policy
+
+✅ Device Owner (DO)
+
+You’ll see something like:
+
+Device Owner:
+  admin=ComponentInfo{com.company.mdm/.AdminReceiver}
+
+👉 Meaning:
+
+Full device control
+Global policies (camera, etc.)
+
+🧑‍💼 Profile Owner (PO)
+
+You’ll see:
+
+Profile Owner (User 10):
+  admin=ComponentInfo{com.company.mdm/.AdminReceiver}
+
+👉 Meaning:
+
+Only work profile controlled
+Personal side untouched
+
+❌ No Owner (Weak / Not Managed)
+(no device owner)
+(no profile owner)
+
+👉 Meaning:
+
+Not properly enrolled
+
+🧪 Method 2: Quick Grep (Faster)
+adb shell dumpsys device_policy | grep -i "owner"
+🧪 Method 3: Check Users (Helpful for PO)
+adb shell pm list users
+🔍 Output Example:
+UserInfo{0:Owner}
+UserInfo{10:Work profile}
+
+👉 If you see multiple users → likely Profile Owner setup
+
+
+Got it — this is a legit reverse/trace use-case 👍
+You want to see what actually happens under the hood when camera is blocked/unblocked. That’s the right way to validate where enforcement lives.
+I’ll give you a clean tracing approach (Frida + logs) without touching bypass territory.
+
+🎯 What You Want to Trace
+Two things:
+
+
+When MDM sets policy
+→ which API gets called
+
+
+When app tries to use camera
+→ where it gets blocked
+
+
+
+🧠 High-Level Flow (What Happens Internally)
+When camera is blocked:
+
+
+MDM calls:
+
+
+DevicePolicyManager.setCameraDisabled()
+
+
+
+
+Framework updates:
+
+
+DevicePolicyManagerService
+
+
+
+
+When any app tries camera:
+
+
+CameraService checks policy
+
+
+Denies access
+
+
+
+
+
+🧪 PART 1 — Trace MDM Setting Camera Policy
+🎯 Attach Frida to MDM app
+frida -U -n <mdm_package>
+
+🧠 Hook this method
+Java.perform(function () {    var dpm = Java.use("android.app.admin.DevicePolicyManager");    dpm.setCameraDisabled.overload(        'android.content.ComponentName',        'boolean'    ).implementation = function (admin, disabled) {        console.log("[+] setCameraDisabled called: " + disabled);        return this.setCameraDisabled(admin, disabled);    };});
+
+🔍 What you’ll see
+
+
+true → camera being blocked
+
+
+false → camera being enabled
+
+
+👉 This confirms:
+
+MDM is using proper API (or not)
+
+
+🧪 PART 2 — Trace Camera Access Attempts
+🎯 Attach to any app (camera / browser)
+frida -U -f <app_package> -l hook.js --no-pause
+
+🧠 Hook Camera APIs
+Java.perform(function () {    var CameraManager = Java.use("android.hardware.camera2.CameraManager");    CameraManager.openCamera.overload(        'java.lang.String',        'android.hardware.camera2.CameraDevice$StateCallback',        'android.os.Handler'    ).implementation = function (id, cb, handler) {        console.log("[+] openCamera called: " + id);        try {            return this.openCamera(id, cb, handler);        } catch (e) {            console.log("[!] Blocked: " + e);            throw e;        }    };});
+
+🔍 Expected Output
+When camera is blocked:
+[+] openCamera called: 0[!] Blocked: CameraAccessException: disabled by policy
+👉 This proves:
+
+Blocking happens at framework level
+
+
+🧪 PART 3 — Trace System Logs (Very Useful)
+adb logcat | grep -i camera
+Look for:
+
+
+CameraService
+
+
+DevicePolicyManager
+
+
+denied by policy
+
+
+
+🧪 PART 4 — Validate Policy State
+adb shell dumpsys device_policy
+Check:
+
+
+Device Owner
+
+
+Camera disabled = true
+
+
+
+🧠 What You’ll Learn From This
+ObservationMeaningsetCameraDisabled calledMDM is using proper APIopenCamera always failsOS-level enforcementerror = “disabled by policy”Strong implementationbehavior differs per appWeak implementation
+
+⚡ Pro Insight (This is key)
+👉 You are NOT trying to bypass
+👉 You are proving:
+
+Where enforcement is happening
+
+
+🧠 If You Want to Go Deeper
+Next level tracing:
+
+
+DevicePolicyManagerService (system server)
+
+
+CameraService binder calls
+
+
+AppOps (OP_CAMERA)
+
+
+
+⚡ One-Line Summary
+
+MDM sets policy → Android framework enforces → CameraService denies → Frida shows the denial path
+
+
+If you want next, I can give:
+
+
+Binder-level tracing (very powerful for your level)
+
+
+Or exact log patterns that differentiate strong vs weak MDM implementations
+
+
+
+
+
+
+
